@@ -1,0 +1,13 @@
+
+
+public class AccountContactController {
+	@AuraEnabled(cacheable=true)
+    public static List<Account> getAccounts() {
+        return [SELECT Id, Name FROM Account LIMIT 100]; 
+    }
+	@AuraEnabled(cacheable=true)
+    public static List<Contact> getContacts(Id accountId) {
+        if (accountId == null) return new List<Contact>();
+        return [SELECT Id, Name FROM Contact WHERE AccountId = :accountId LIMIT 100]; // Adjust the query as necessary
+    }
+}
