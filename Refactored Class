@@ -1,0 +1,97 @@
+public inherited sharing abstract class Animal {
+
+    global String animalType;
+
+    public Animal(String animalType) {
+        this.animalType = animalType;
+    }
+
+    public abstract void makeNoise();
+    public abstract void move();
+    public abstract void swim();
+
+    public void doSwim() {
+        // swimming behavior here
+    }
+}
+
+public inherited sharing class Lion extends Animal {
+
+    public Lion() {
+        super('Lion');
+    }
+
+    public override void makeNoise() {
+        roar();
+    }
+
+    public override void move() {
+        run();
+    }
+
+    public override void swim() {
+        doSwim();
+    }
+
+    public void roar() {
+        // roaring behavior here
+    }
+
+    public void run() {
+        // running behavior here
+    }
+}
+
+public inherited sharing class Cat extends Animal {
+
+    public Cat() {
+        super('Cat');
+    }
+
+    public override void makeNoise() {
+        meow();
+    }
+
+    public override void move() {
+        walk();
+    }
+
+    public override void swim() {
+        // Cats generally don't swim
+    }
+
+    public void meow() {
+        // meowing behavior here
+    }
+
+    public void walk() {
+        // walking behavior here
+    }
+}
+
+public inherited sharing class Horse extends Animal {
+
+    public Horse() {
+        super('Horse');
+    }
+
+    public override void makeNoise() {
+        neigh();
+    }
+
+    public override void move() {
+        slide();
+    }
+
+    public override void swim() {
+        // Horses generally don't swim
+    }
+
+    public void neigh() {
+        // neighing behavior here
+    }
+
+    public void slide() {
+        // sliding behavior here
+    }
+}
