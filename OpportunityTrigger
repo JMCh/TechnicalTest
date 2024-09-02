@@ -1,0 +1,89 @@
+trigger OpportunityTrigger on Opportunity (after insert, after update, after delete, after undelete) {
+    
+    // Maps to store the accumulated sales amounts by wood type for each Account
+    Map<Id, Decimal> standardWoodSalesMap = new Map<Id, Decimal>();
+    Map<Id, Decimal> recycledWoodSalesMap = new Map<Id, Decimal>();
+    
+    Set<Id> accountIds = new Set<Id>();
+    
+    // Method to accumulate sales by wood type
+    void accumulateSales(List<Opportunity> opportunities, Boolean isDelete) {
+        for (Opportunity opp : opportunities) {
+            if (opp.AccountId != null && opp.Amount != null && opp.Wood_Type__c != null) {
+                accountIds.add(opp.AccountId);
+                Decimal amount = isDelete ? -opp.Amount : opp.Amount;
+                
+                if (opp.Wood_Type__c == 'Standard') {
+                    standardWoodSalesMap.put(opp.AccountId, standardWoodSalesMap.get(opp.AccountId) + amount);
+                } else if (opp.Wood_Type__c == 'Recycled') {
+                    recycledWoodSalesMap.put(opp.AccountId, recycledWoodSalesMap.get(opp.AccountId) + amount);
+                }
+            }
+        }
+    }
+    
+    // Process insert and undelete events
+    if (Trigger.isInsert || Trigger.isUndelete) {
+        accumulateSales(Trigger.New, false);
+    }
+    
+    // Process update events
+    if (Trigger.isUpdate) {
+        List<Opportunity> toRevert = new List<Opportunity>();
+        List<Opportunity> toApply = new List<Opportunity>();
+        
+        for (Opportunity opp : Trigger.New) {
+            Opportunity oldOpp = Trigger.oldMap.get(opp.Id);
+            if (opp.AccountId != null) {
+                if (opp.Wood_Type__c != oldOpp.Wood_Type__c || opp.Amount != oldOpp.Amount) {
+                    toRevert.add(oldOpp);
+                    toApply.add(opp);
+                }
+            }
+        }
+        
+        // Revert old values and apply new values
+        accumulateSales(toRevert, true);
+        accumulateSales(toApply, false);
+    }
+    
+    // Process delete events
+    if (Trigger.isDelete) {
+        accumulateSales(Trigger.old, true);
+    }
+    
+    // Update Account records if there are changes
+    if (!accountIds.isEmpty()) {
+        List<Account> accountsToUpdate = new List<Account>();
+        
+        // Query the current sales totals from the Account records
+        for (Account acc : [
+            SELECT Id, Total_Sales_Standard_Wood__c, Total_Sales_Recycled_Wood__c
+            FROM Account
+            WHERE Id IN :accountIds
+        ]) {
+            Boolean isUpdated = false;
+            
+            // Update Standard Wood sales if there were changes
+            if (standardWoodSalesMap.containsKey(acc.Id)) {
+                acc.Total_Sales_Standard_Wood__c += standardWoodSalesMap.get(acc.Id);
+                isUpdated = true;
+            }
+            
+            // Update Recycled Wood sales if there were changes
+            if (recycledWoodSalesMap.containsKey(acc.Id)) {
+                acc.Total_Sales_Recycled_Wood__c += recycledWoodSalesMap.get(acc.Id);
+                isUpdated = true;
+            }
+            
+            if (isUpdated) {
+                accountsToUpdate.add(acc);
+            }
+        }
+        
+        // Perform DML update only if there are Accounts to update
+        if (!accountsToUpdate.isEmpty()) {
+            update accountsToUpdate;
+        }
+    }
+}
